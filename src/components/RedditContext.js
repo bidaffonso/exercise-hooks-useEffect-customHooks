@@ -1,5 +1,4 @@
-import React, { createContext, useState } from 'react';
-import PropTypes from 'prop-types';
+import React, { createContext, useEffect, useState } from 'react';
 import { getPostsBySubreddit } from '../services/redditAPI';
 
 const Context = createContext();
@@ -9,7 +8,7 @@ const InitialPostsBySubreddit = {
   reactjs: {},
 };
 
-function RedditContext({ children }) {
+function RedditProvider({ children }) {
   const [postsBySubreddit, setPostsBySubreddit] = useState((InitialPostsBySubreddit));
   const [selectedSubreddit, setSelectedSubreddit] = useState('reactjs');
   const [shouldRefreshSubreddit, setShouldRefreshSubreddit] = useState(false);
@@ -30,9 +29,9 @@ function RedditContext({ children }) {
       ...postsBySubreddit,
       [selectedSubreddit]: {items, lastUpdated},
     }
+    setPostsBySubreddit(newPostsBySubreddit);
     setShouldRefreshSubreddit(false);
     setIsFetching(false);
-    setPostsBySubreddit(newPostsBySubreddit);
   }
 
   function handleFetchError(error) {
@@ -40,9 +39,9 @@ function RedditContext({ children }) {
       ...postsBySubreddit,
       [selectedSubreddit]: {  error: error.message, items: []},
     }
+    setPostsBySubreddit(errorPostsBySubreddit);
     setShouldRefreshSubreddit(false);
     setIsFetching(false);
-    setPostsBySubreddit(errorPostsBySubreddit);
   }
 
   function handleRefreshSubreddit() {
@@ -50,17 +49,38 @@ function RedditContext({ children }) {
   }
 
   function fetchPosts() {
-    if (shouldFetchPosts()) return;
-    
+    if (!shouldFetchPosts()) return;
+
+    setShouldRefreshSubreddit(false);
+    setIsFetching(true); 
+
     getPostsBySubreddit(selectedSubreddit)
       .then(handleFetchSuccess, handleFetchError);
-
-      setShouldRefreshSubreddit(false);
-      setIsFetching(false);
   }
 
+  useEffect(() => {
+    fetchPosts();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSubreddit, shouldRefreshSubreddit]);
+  const context = {
+    postsBySubreddit,
+    selectedSubreddit,
+    shouldRefreshSubreddit,
+    isFetching,
+    selectSubreddit: setSelectedSubreddit,
+    fetchPosts,
+    refreshSubreddit: handleRefreshSubreddit,
+    availableSubreddits: Object.keys(postsBySubreddit),
+    posts: postsBySubreddit[selectedSubreddit].items,
+  };
 
 
-  return(null);
 
-}
+  return(
+    <Context.Provider value={context}>
+      { children }
+    </Context.Provider>
+  );
+};
+
+export { RedditProvider as Provider, Context}
