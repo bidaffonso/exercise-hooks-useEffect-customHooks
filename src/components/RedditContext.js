@@ -49,4 +49,18 @@ function RedditContext({ children }) {
     setShouldRefreshSubreddit(true);
   }
 
+  function fetchPosts() {
+    if (shouldFetchPosts()) return;
+    
+    getPostsBySubreddit(selectedSubreddit)
+      .then(handleFetchSuccess, handleFetchError);
+
+      setShouldRefreshSubreddit(false);
+      setIsFetching(false);
+  }
+
+
+
+  return(null);
+
 }
